@@ -1,0 +1,31 @@
+service: product-service
+
+frameworkVersion: "3"
+
+plugins:
+  - serverless-webpack
+
+provider:
+  name: aws
+  runtime: nodejs14.x
+
+package:
+  individually: true
+
+functions:
+  getProductsList:
+    handler: src/handlers/getProductsList.getProductsList
+    events:
+      - http:
+          path: products
+          method: get
+  getProductById:
+    handler: src/handlers/getProductById.getProductById
+    events:
+      - http:
+          path: products/{productId}
+          method: get
+
+custom:
+  webpack:
+    webpackConfig: webpack.config.js
