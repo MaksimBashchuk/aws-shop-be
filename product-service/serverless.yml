@@ -3,11 +3,17 @@ service: product-service
 frameworkVersion: "3"
 
 plugins:
+  - serverless-better-credentials
   - serverless-webpack
+  - serverless-openapi-documenter
 
 provider:
   name: aws
   runtime: nodejs14.x
+  apiGateway:
+    minimumCompressionSize: 1024
+  memorySize: 128
+  profile: mbashchuk
 
 package:
   individually: true
@@ -19,13 +25,48 @@ functions:
       - http:
           path: products
           method: get
+          documentation:
+            summary: Get Products
+            description: Returns a full list of available products
+            methodResponses:
+              - statusCode: 200
+                responseBody:
+                  description: List of products
+                responseModels:
+                  application/json: GetProductsListResponse
   getProductById:
     handler: src/handlers/getProductById.getProductById
     events:
       - http:
           path: products/{productId}
           method: get
+          documentation:
+            summary: Get Single Product
+            description: "Returns a single product by it's id"
+            pathParams:
+              - name: productId
+                description: Unique product identifier
+                schema:
+                  type: string
+                  pattern: ^[-a-z0-9_]+$
+            methodResponses:
+              - statusCode: 200
+                responseBody:
+                  description: Product object
+                responseModels:
+                  application/json: GetProductByIdResponse
+              - statusCode: 404
+                responseBody:
+                  description: Product not found
+                responseModels:
+                  application/json: ErrorResponse
+              - statusCode: 400
+                responseBody:
+                  description: Wrong Id type
+                responseModels:
+                  application/json: ErrorResponse
 
 custom:
   webpack:
     webpackConfig: webpack.config.js
+  documentation: ${file(serverless.doc.yml):documentation}
