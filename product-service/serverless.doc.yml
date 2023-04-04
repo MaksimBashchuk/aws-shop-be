@@ -1,0 +1,55 @@
+documentation:
+  version: "1"
+  title: Shop API
+  description: Lambda based REST API
+  servers:
+    - url: "https://curgd5sbhd.execute-api.us-east-1.amazonaws.com/{basePath}"
+      variables:
+        basePath:
+          default: dev
+  models:
+    - name: GetProductsListResponse
+      description: Returns a full list of available products
+      contentType: application/json
+      schema:
+        $schema: "http://json-schema.org/draft-04/schema#"
+        type: array
+        items:
+          type: object
+          properties:
+            id:
+              type: integer
+            title:
+              type: string
+            description:
+              type: string
+            price:
+              type: number
+            count:
+              type: integer
+    - name: GetProductByIdResponse
+      description: Returns a single product by it's id
+      contentType: application/json
+      schema:
+        $schema: "http://json-schema.org/draft-04/schema#"
+        type: object
+        properties:
+          id:
+            type: integer
+          title:
+            type: string
+          description:
+            type: string
+          price:
+            type: number
+          count:
+            type: integer
+    - name: ErrorResponse
+      description: Returns a single product by it's id
+      contentType: application/json
+      schema:
+        $schema: "http://json-schema.org/draft-04/schema#"
+        type: object
+        properties:
+          errorMessage:
+            type: string
