@@ -1,0 +1,95 @@
+openapi: 3.0.3
+info:
+  title: Shop API
+  description: Lambda based REST API
+  version: '1'
+components:
+  schemas:
+    GetProductsListResponse:
+      type: array
+      items:
+        type: object
+        properties:
+          id:
+            type: integer
+          title:
+            type: string
+          description:
+            type: string
+          price:
+            type: number
+          count:
+            type: integer
+    productId:
+      type: string
+      pattern: ^[-a-z0-9_]+$
+    GetProductByIdResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+        price:
+          type: number
+        count:
+          type: integer
+    ErrorResponse:
+      type: object
+      properties:
+        errorMessage:
+          type: string
+paths:
+  /products:
+    get:
+      summary: Get Products
+      description: Returns a full list of available products
+      operationId: product-service-dev-getProductsList
+      parameters: []
+      tags: []
+      responses:
+        '200':
+          description: List of products
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetProductsListResponse'
+  /products/{productId}:
+    get:
+      summary: Get Single Product
+      description: Returns a single product by it's id
+      operationId: product-service-dev-getProductById
+      parameters:
+        - name: productId
+          in: path
+          description: Unique product identifier
+          required: true
+          schema:
+            $ref: '#/components/schemas/productId'
+      tags: []
+      responses:
+        '200':
+          description: Product object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetProductByIdResponse'
+        '400':
+          description: Wrong Id type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Product not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+servers:
+  - url: https://curgd5sbhd.execute-api.us-east-1.amazonaws.com/{basePath}
+    variables:
+      basePath:
+        default: dev
