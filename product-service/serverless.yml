@@ -2,21 +2,80 @@ service: product-service
 
 frameworkVersion: "3"
 
+useDotenv: true
 plugins:
   - serverless-better-credentials
   - serverless-webpack
   - serverless-openapi-documenter
+  - serverless-dynamodb-local
+  - serverless-offline
+
+custom:
+  productsTable: products
+  stocksTable: stocks
+  webpack:
+    webpackConfig: webpack.config.js
+  documentation: ${file(serverless.doc.yml):documentation}
+  dynamodb:
+    stages:
+      - dev
+    start:
+      port: 8000
+      inMemory: true
+      migrate: true
+      seed:
+        domain:
+          sources:
+            - table: ${self:custom.productsTable}
+              sources: [./mock/products.json]
+            - table: ${self:custom.stocksTable}
+              sources: [./mock/stocks.json]
 
 provider:
   name: aws
-  runtime: nodejs14.x
+  runtime: nodejs18.x
   apiGateway:
     minimumCompressionSize: 1024
   memorySize: 128
-  profile: mbashchuk
+  environment:
+    AWS_NODEJS_CONNECTION_REUSE_ENABLES: 1
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:*
+      Resource: "*"
 
 package:
   individually: true
+
+resources:
+  Resources:
+    products:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.productsTable}
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+    stocks:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.stocksTable}
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+        AttributeDefinitions:
+          - AttributeName: product_id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: product_id
+            KeyType: HASH
 
 functions:
   getProductsList:
@@ -65,8 +124,9 @@ functions:
                   description: Wrong Id type
                 responseModels:
                   application/json: ErrorResponse
-
-custom:
-  webpack:
-    webpackConfig: webpack.config.js
-  documentation: ${file(serverless.doc.yml):documentation}
+  createProduct:
+    handler: src/handlers/createProduct.createProduct
+    events:
+      - http:
+          path: products
+          method: post
