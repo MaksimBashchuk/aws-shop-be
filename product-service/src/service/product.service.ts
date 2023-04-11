@@ -20,8 +20,10 @@ const combineProduct = (product: Product, stock: Stock) => {
 
 export const findAllProducts = async () => {
   const [productsOutput, stocksOutput] = await Promise.all([
-    client.send(new ScanCommand({ TableName: "products" })),
-    client.send(new ScanCommand({ TableName: "stocks" })),
+    client.send(
+      new ScanCommand({ TableName: process.env.PRODUCTS_TABLE_NAME })
+    ),
+    client.send(new ScanCommand({ TableName: process.env.STOCKS_TABLE_NAME })),
   ]);
 
   if (productsOutput.Items && stocksOutput.Items) {
@@ -43,7 +45,7 @@ export const findOneProduct = async (productId: string) => {
     TransactItems: [
       {
         Get: {
-          TableName: "products",
+          TableName: process.env.PRODUCTS_TABLE_NAME,
           Key: marshall({
             id: productId,
           }),
@@ -51,7 +53,7 @@ export const findOneProduct = async (productId: string) => {
       },
       {
         Get: {
-          TableName: "stocks",
+          TableName: process.env.STOCKS_TABLE_NAME,
           Key: marshall({
             product_id: productId,
           }),
@@ -82,7 +84,7 @@ export const createNewProduct = async (
     TransactItems: [
       {
         Put: {
-          TableName: "products",
+          TableName: process.env.PRODUCTS_TABLE_NAME,
           Item: marshall(
             {
               id: id,
@@ -96,7 +98,7 @@ export const createNewProduct = async (
       },
       {
         Put: {
-          TableName: "stocks",
+          TableName: process.env.STOCKS_TABLE_NAME,
           Item: marshall(
             {
               product_id: id,

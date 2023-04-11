@@ -11,8 +11,8 @@ plugins:
   - serverless-offline
 
 custom:
-  productsTable: products
-  stocksTable: stocks
+  PRODUCTS_TABLE_NAME: ${env:PRODUCTS_TABLE_NAME}
+  STOCKS_TABLE_NAME: ${env:STOCKS_TABLE_NAME}
   webpack:
     webpackConfig: webpack.config.js
   documentation: ${file(serverless.doc.yml):documentation}
@@ -26,9 +26,9 @@ custom:
       seed:
         domain:
           sources:
-            - table: ${self:custom.productsTable}
+            - table: ${self:custom.PRODUCTS_TABLE_NAME}
               sources: [./mock/products.json]
-            - table: ${self:custom.stocksTable}
+            - table: ${self:custom.STOCKS_TABLE_NAME}
               sources: [./mock/stocks.json]
 
 provider:
@@ -39,6 +39,8 @@ provider:
   memorySize: 128
   environment:
     AWS_NODEJS_CONNECTION_REUSE_ENABLES: 1
+    PRODUCTS_TABLE_NAME: ${self:custom.PRODUCTS_TABLE_NAME}
+    STOCKS_TABLE_NAME: ${self:custom.STOCKS_TABLE_NAME}
   iamRoleStatements:
     - Effect: Allow
       Action:
@@ -53,7 +55,7 @@ resources:
     products:
       Type: AWS::DynamoDB::Table
       Properties:
-        TableName: ${self:custom.productsTable}
+        TableName: ${self:custom.PRODUCTS_TABLE_NAME}
         ProvisionedThroughput:
           ReadCapacityUnits: 1
           WriteCapacityUnits: 1
@@ -66,7 +68,7 @@ resources:
     stocks:
       Type: AWS::DynamoDB::Table
       Properties:
-        TableName: ${self:custom.stocksTable}
+        TableName: ${self:custom.STOCKS_TABLE_NAME}
         ProvisionedThroughput:
           ReadCapacityUnits: 1
           WriteCapacityUnits: 1
