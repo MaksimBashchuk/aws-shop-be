@@ -6,9 +6,9 @@ useDotenv: true
 plugins:
   - serverless-better-credentials
   - serverless-webpack
-  - serverless-openapi-documenter
   - serverless-dynamodb-local
   - serverless-offline
+  - serverless-openapi-documenter
 
 custom:
   PRODUCTS_TABLE_NAME: ${env:PRODUCTS_TABLE_NAME}
@@ -124,6 +124,11 @@ functions:
                   description: List of products
                 responseModels:
                   application/json: GetProductsListResponse
+              - statusCode: 500
+                responseBody:
+                  description: Internal server error
+                responseModels:
+                  application/json: ErrorResponse
   getProductById:
     handler: src/handlers/getProductById.getProductById
     events:
@@ -138,7 +143,7 @@ functions:
                 description: Unique product identifier
                 schema:
                   type: string
-                  pattern: ^[-a-z0-9_]+$
+                  format: uuid
             methodResponses:
               - statusCode: 200
                 responseBody:
@@ -155,9 +160,33 @@ functions:
                   description: Wrong Id type
                 responseModels:
                   application/json: ErrorResponse
+              - statusCode: 500
+                responseBody:
+                  description: Internal server error
+                responseModels:
+                  application/json: ErrorResponse
   createProduct:
     handler: src/handlers/createProduct.createProduct
     events:
       - http:
           path: products
           method: post
+          documentation:
+            summary: Create Product
+            description: Creates product and returns it
+            methodResponses:
+              - statusCode: 201
+                responseBody:
+                  description: Product object
+                responseModels:
+                  application/json: GetProductByIdResponse
+              - statusCode: 400
+                responseBody:
+                  description: Body validation failed
+                responseModels:
+                  application/json: ErrorResponse
+              - statusCode: 500
+                responseBody:
+                  description: Internal server error
+                responseModels:
+                  application/json: ErrorResponse

@@ -18,7 +18,8 @@ documentation:
           type: object
           properties:
             id:
-              type: uuid
+              type: string
+              format: uuid
             title:
               type: string
             description:
@@ -35,7 +36,8 @@ documentation:
         type: object
         properties:
           id:
-            type: integer
+            type: string
+            format: uuid
           title:
             type: string
           description:
@@ -51,5 +53,11 @@ documentation:
         $schema: "http://json-schema.org/draft-04/schema#"
         type: object
         properties:
-          errorMessage:
+          error:
             type: string
+          fieldsError:
+            type: object
+            additionalProperties:
+              type: array
+              items:
+                type: string

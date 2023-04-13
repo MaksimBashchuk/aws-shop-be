@@ -1,4 +1,4 @@
-openapi: 3.0.3
+openapi: 3.0.0
 info:
   title: Shop API
   description: Lambda based REST API
@@ -11,7 +11,8 @@ components:
         type: object
         properties:
           id:
-            type: integer
+            type: string
+            format: uuid
           title:
             type: string
           description:
@@ -20,14 +21,26 @@ components:
             type: number
           count:
             type: integer
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        fieldsError:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
     productId:
       type: string
-      pattern: ^[-a-z0-9_]+$
+      format: uuid
     GetProductByIdResponse:
       type: object
       properties:
         id:
-          type: integer
+          type: string
+          format: uuid
         title:
           type: string
         description:
@@ -36,11 +49,6 @@ components:
           type: number
         count:
           type: integer
-    ErrorResponse:
-      type: object
-      properties:
-        errorMessage:
-          type: string
 paths:
   /products:
     get:
@@ -56,6 +64,37 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GetProductsListResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    post:
+      summary: Create Product
+      description: Creates product and returns it
+      operationId: product-service-dev-createProduct
+      parameters: []
+      tags: []
+      responses:
+        '201':
+          description: Product object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetProductByIdResponse'
+        '400':
+          description: Body validation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /products/{productId}:
     get:
       summary: Get Single Product
@@ -88,8 +127,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 servers:
-  - url: https://curgd5sbhd.execute-api.us-east-1.amazonaws.com/{basePath}
+  - url: https://t181oeitnb.execute-api.us-east-1.amazonaws.com/{basePath}
     variables:
       basePath:
         default: dev
