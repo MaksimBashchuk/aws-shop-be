@@ -1,15 +1,16 @@
-import { FromSchema } from "json-schema-to-ts";
+import zod from "zod";
+import { stockSchema } from "./stock.schema";
 
-export const productSchema = {
-  type: "object",
-  properties: {
-    id: { type: "integer" },
-    title: { type: "string" },
-    description: { type: "string" },
-    price: { type: "number" },
-    count: { type: "integer" },
-  },
-  required: ["id", "title", "price", "count"],
-} as const;
+export const productSchema = zod.object({
+  id: zod.string().uuid(),
+  title: zod.string(),
+  description: zod.string().optional(),
+  price: zod.number(),
+});
 
-export type Product = FromSchema<typeof productSchema>;
+export const productWithStockSchema = productSchema.merge(
+  stockSchema.pick({ count: true })
+);
+
+export type Product = zod.infer<typeof productSchema>;
+export type ProductWithStock = zod.infer<typeof productWithStockSchema>;

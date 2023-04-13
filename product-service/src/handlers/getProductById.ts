@@ -1,40 +1,46 @@
-import { APIGatewayEvent } from "aws-lambda";
-import { findOneProduct } from "../service/product.service";
+import { APIGatewayEvent, Context } from "aws-lambda";
+import { validate } from "uuid";
+import { findOneProduct, findOneProductPg } from "../service/product.service";
+import { logger, sendResponse } from "../lib";
 
-export const getProductById = async (event: APIGatewayEvent) => {
-  const productId = +event.pathParameters?.productId;
-
-  if (isNaN(productId)) {
-    return {
-      statusCode: 400,
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-      },
-      body: JSON.stringify({
-        errorMessage: "Bad Request: Id should be an integer",
-      }),
-    };
-  }
+export const getProductById = async (
+  event: APIGatewayEvent,
+  context: Context
+) => {
+  logger(event, context);
+  const productId = event.pathParameters?.productId as string;
 
   try {
-    const product = await findOneProduct(productId);
+    if (productId && !validate(productId)) {
+      return sendResponse(
+        {
+          error: "Id should be a UUID",
+        },
+        400
+      );
+    }
 
-    return {
-      statusCode: 200,
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-      },
-      body: JSON.stringify(product),
-    };
+    const product =
+      process.env.USE_PG === "true"
+        ? await findOneProductPg(productId)
+        : await findOneProduct(productId);
+
+    if (!product) {
+      return sendResponse(
+        {
+          error: `Product with id ${productId} does not exist`,
+        },
+        404
+      );
+    }
+
+    return sendResponse(product);
   } catch (error) {
-    return {
-      statusCode: 404,
-      headers: {
-        "Access-Control-Allow-Origin": "*",
+    return sendResponse(
+      {
+        error: `Internal Sever Error occurred`,
       },
-      body: JSON.stringify({
-        errorMessage: `Not Found: ${error}`,
-      }),
-    };
+      500
+    );
   }
 };

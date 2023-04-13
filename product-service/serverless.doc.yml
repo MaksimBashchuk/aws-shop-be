@@ -3,7 +3,7 @@ documentation:
   title: Shop API
   description: Lambda based REST API
   servers:
-    - url: "https://curgd5sbhd.execute-api.us-east-1.amazonaws.com/{basePath}"
+    - url: "https://t181oeitnb.execute-api.us-east-1.amazonaws.com/{basePath}"
       variables:
         basePath:
           default: dev
@@ -18,7 +18,8 @@ documentation:
           type: object
           properties:
             id:
-              type: integer
+              type: string
+              format: uuid
             title:
               type: string
             description:
@@ -35,7 +36,8 @@ documentation:
         type: object
         properties:
           id:
-            type: integer
+            type: string
+            format: uuid
           title:
             type: string
           description:
@@ -51,5 +53,11 @@ documentation:
         $schema: "http://json-schema.org/draft-04/schema#"
         type: object
         properties:
-          errorMessage:
+          error:
             type: string
+          fieldsError:
+            type: object
+            additionalProperties:
+              type: array
+              items:
+                type: string

@@ -2,21 +2,111 @@ service: product-service
 
 frameworkVersion: "3"
 
+useDotenv: true
 plugins:
   - serverless-better-credentials
   - serverless-webpack
+  - serverless-dynamodb-local
+  - serverless-offline
   - serverless-openapi-documenter
+
+custom:
+  PRODUCTS_TABLE_NAME: ${env:PRODUCTS_TABLE_NAME}
+  STOCKS_TABLE_NAME: ${env:STOCKS_TABLE_NAME}
+  PGHOST: !GetAtt PostgreSqlRDSInstance.Endpoint.Address
+  PGPORT: !GetAtt PostgreSqlRDSInstance.Endpoint.Port
+  webpack:
+    webpackConfig: webpack.config.js
+  documentation: ${file(serverless.doc.yml):documentation}
+  dynamodb:
+    stages:
+      - dev
+    start:
+      port: 8000
+      inMemory: true
+      migrate: true
+      seed:
+        domain:
+          sources:
+            - table: ${self:custom.PRODUCTS_TABLE_NAME}
+              sources: [./mock/products.json]
+            - table: ${self:custom.STOCKS_TABLE_NAME}
+              sources: [./mock/stocks.json]
 
 provider:
   name: aws
-  runtime: nodejs14.x
+  runtime: nodejs18.x
+  region: us-east-1
   apiGateway:
     minimumCompressionSize: 1024
   memorySize: 128
-  profile: mbashchuk
+  environment:
+    AWS_NODEJS_CONNECTION_REUSE_ENABLES: 1
+    PRODUCTS_TABLE_NAME: ${self:custom.PRODUCTS_TABLE_NAME}
+    STOCKS_TABLE_NAME: ${self:custom.STOCKS_TABLE_NAME}
+    USE_PG: ${env:USE_PG}
+    PGUSER: ${env:PGUSER}
+    PGPASSWORD: ${env:PGPASSWORD}
+    PGHOST: ${self:custom.PGHOST}
+    PGDATABASE: ${env:PGDATABASE}
+    PGPORT: ${self:custom.PGPORT}
+    CONNECTION_STRING: ${env:CONNECTION_STRING}
+
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - dynamodb:*
+          Resource: "*"
+        - Effect: Allow
+          Action:
+            - rds:*
+          Resource: "*"
 
 package:
   individually: true
+
+resources:
+  Resources:
+    PostgreSqlRDSInstance:
+      Type: AWS::RDS::DBInstance
+      DeletionPolicy: Retain
+      UpdateReplacePolicy: Retain
+      Properties:
+        MasterUsername: ${env:PGUSER}
+        MasterUserPassword: ${env:PGPASSWORD}
+        AllocatedStorage: "5"
+        DBName: ${env:PGDATABASE}
+        DBInstanceClass: db.t3.micro
+        Engine: postgres
+        PubliclyAccessible: true
+    products:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.PRODUCTS_TABLE_NAME}
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+    stocks:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.STOCKS_TABLE_NAME}
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+        AttributeDefinitions:
+          - AttributeName: product_id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: product_id
+            KeyType: HASH
 
 functions:
   getProductsList:
@@ -34,6 +124,11 @@ functions:
                   description: List of products
                 responseModels:
                   application/json: GetProductsListResponse
+              - statusCode: 500
+                responseBody:
+                  description: Internal server error
+                responseModels:
+                  application/json: ErrorResponse
   getProductById:
     handler: src/handlers/getProductById.getProductById
     events:
@@ -48,7 +143,7 @@ functions:
                 description: Unique product identifier
                 schema:
                   type: string
-                  pattern: ^[-a-z0-9_]+$
+                  format: uuid
             methodResponses:
               - statusCode: 200
                 responseBody:
@@ -65,8 +160,33 @@ functions:
                   description: Wrong Id type
                 responseModels:
                   application/json: ErrorResponse
-
-custom:
-  webpack:
-    webpackConfig: webpack.config.js
-  documentation: ${file(serverless.doc.yml):documentation}
+              - statusCode: 500
+                responseBody:
+                  description: Internal server error
+                responseModels:
+                  application/json: ErrorResponse
+  createProduct:
+    handler: src/handlers/createProduct.createProduct
+    events:
+      - http:
+          path: products
+          method: post
+          documentation:
+            summary: Create Product
+            description: Creates product and returns it
+            methodResponses:
+              - statusCode: 201
+                responseBody:
+                  description: Product object
+                responseModels:
+                  application/json: GetProductByIdResponse
+              - statusCode: 400
+                responseBody:
+                  description: Body validation failed
+                responseModels:
+                  application/json: ErrorResponse
+              - statusCode: 500
+                responseBody:
+                  description: Internal server error
+                responseModels:
+                  application/json: ErrorResponse
