@@ -1,10 +1,10 @@
 import { APIGatewayEvent, Context } from "aws-lambda";
 import { ZodError } from "zod";
-import { createNewProduct } from "../service/product.service";
 import {
-  CreateProductBody,
-  createProductBodySchema,
-} from "../schema/createProductBody.schema";
+  createNewProduct,
+  createNewProductPg,
+} from "../service/product.service";
+import { CreateProductBody, createProductBodySchema } from "../schema";
 import { logger, sendResponse } from "../lib";
 
 export const createProduct = async (
@@ -16,7 +16,11 @@ export const createProduct = async (
     if (event.body) {
       const body = JSON.parse(event.body);
       const parsedBody = createProductBodySchema.parse(body);
-      const result = await createNewProduct(parsedBody as CreateProductBody);
+
+      const result =
+        process.env.USE_PG === "true"
+          ? await createNewProductPg(parsedBody)
+          : await createNewProduct(parsedBody as CreateProductBody);
       return sendResponse(result, 201);
     }
   } catch (error) {

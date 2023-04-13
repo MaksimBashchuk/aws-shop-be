@@ -1,4 +1,4 @@
-import { Stock } from "../schema/stock.schema";
+import { Stock } from "../schema";
 
 export const stocks: Stock[] = [
   {

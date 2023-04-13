@@ -4,9 +4,8 @@ import {
 } from "@aws-sdk/client-dynamodb";
 import { marshall } from "@aws-sdk/util-dynamodb";
 import { client } from "./db";
-import { products } from "../mock/products";
-import { stocks } from "../mock/stocks";
-import { Stock } from "../schema/stock.schema";
+import { stocks, products } from "../mock";
+import { Stock } from "../schema";
 
 const initDatabase = async () => {
   for (let i = 0; i < products.length; i++) {

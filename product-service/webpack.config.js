@@ -1,4 +1,5 @@
 const path = require("path");
+const { IgnorePlugin } = require("webpack");
 const slsw = require("serverless-webpack");
 
 module.exports = {
@@ -27,4 +28,9 @@ module.exports = {
   resolve: {
     extensions: [".ts", ".js"],
   },
+  plugins: [
+    new IgnorePlugin({
+      resourceRegExp: /^pg-native$/,
+    }),
+  ],
 };

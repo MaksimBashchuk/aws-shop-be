@@ -1,6 +1,6 @@
 import { APIGatewayEvent, Context } from "aws-lambda";
 import { logger, sendResponse } from "../lib";
-import { findAllProducts } from "../service/product.service";
+import { findAllProducts, findAllProductsPg } from "../service/product.service";
 
 export const getProductsList = async (
   event: APIGatewayEvent,
@@ -8,7 +8,10 @@ export const getProductsList = async (
 ) => {
   logger(event, context);
   try {
-    const products = await findAllProducts();
+    const products =
+      process.env.USE_PG === "true"
+        ? await findAllProductsPg()
+        : await findAllProducts();
 
     return sendResponse(products);
   } catch (error) {

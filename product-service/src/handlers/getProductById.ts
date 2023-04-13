@@ -1,6 +1,6 @@
 import { APIGatewayEvent, Context } from "aws-lambda";
 import { validate } from "uuid";
-import { findOneProduct } from "../service/product.service";
+import { findOneProduct, findOneProductPg } from "../service/product.service";
 import { logger, sendResponse } from "../lib";
 
 export const getProductById = async (
@@ -20,7 +20,10 @@ export const getProductById = async (
       );
     }
 
-    const product = await findOneProduct(productId);
+    const product =
+      process.env.USE_PG === "true"
+        ? await findOneProductPg(productId)
+        : await findOneProduct(productId);
 
     if (!product) {
       return sendResponse(

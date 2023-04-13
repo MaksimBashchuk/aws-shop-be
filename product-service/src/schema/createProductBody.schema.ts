@@ -1,9 +1,8 @@
 import zod from "zod";
-import { productSchema } from "./product.schema";
-import { stockSchema } from "./stock.schema";
+import { productWithStockSchema } from "./product.schema";
 
-export const createProductBodySchema = productSchema
-  .omit({ id: true })
-  .merge(stockSchema.pick({ count: true }));
+export const createProductBodySchema = productWithStockSchema.omit({
+  id: true,
+});
 
 export type CreateProductBody = zod.infer<typeof createProductBodySchema>;

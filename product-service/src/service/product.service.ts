@@ -6,15 +6,42 @@ import {
   TransactWriteItemsCommandInput,
 } from "@aws-sdk/client-dynamodb";
 import { v4 } from "uuid";
+import { Pool } from "pg";
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb";
-import { Product } from "../schema/product.schema";
-import { Stock } from "../schema/stock.schema";
+import { Stock, Product, CreateProductBody, ProductWithStock } from "../schema";
 import { client } from "../database/db";
-import { CreateProductBody } from "../schema/createProductBody.schema";
+import {
+  createProductQuery,
+  createStockQuery,
+  getAllProductsQuery,
+  getProductQuery,
+} from "../database/queries";
+
+const pool = new Pool({
+  connectionString: process.env.CONNECTION_STRING,
+});
 
 const combineProduct = (product: Product, stock: Stock) => {
   if (product && stock) {
     return { ...product, count: stock.count };
+  }
+};
+
+export const findAllProductsPg = async () => {
+  const pgClient = await pool.connect();
+
+  try {
+    await pgClient.query("BEGIN");
+    const result = await pgClient.query<ProductWithStock>(
+      getAllProductsQuery()
+    );
+    await pgClient.query("COMMIT");
+    return result.rows;
+  } catch (e) {
+    await pgClient.query("ROLLBACK");
+    throw e;
+  } finally {
+    pgClient.release();
   }
 };
 
@@ -37,6 +64,24 @@ export const findAllProducts = async () => {
     });
 
     return result;
+  }
+};
+
+export const findOneProductPg = async (productId: string) => {
+  const pgClient = await pool.connect();
+
+  try {
+    await pgClient.query("BEGIN");
+    const result = await pgClient.query<ProductWithStock>(
+      getProductQuery(productId)
+    );
+    await pgClient.query("COMMIT");
+    return result.rows[0];
+  } catch (e) {
+    await pgClient.query("ROLLBACK");
+    throw e;
+  } finally {
+    pgClient.release();
   }
 };
 
@@ -72,6 +117,30 @@ export const findOneProduct = async (productId: string) => {
     });
 
     return combineProduct(product as Product, stock as Stock);
+  }
+};
+
+export const createNewProductPg = async ({
+  title,
+  description,
+  price,
+  count,
+}: CreateProductBody) => {
+  const id = v4();
+  const pgClient = await pool.connect();
+
+  try {
+    await pgClient.query("BEGIN");
+    await pgClient.query(createProductQuery({ id, title, description, price }));
+    await pgClient.query(createStockQuery({ product_id: id, count }));
+    const result = await pgClient.query<ProductWithStock>(getProductQuery(id));
+    await pgClient.query("COMMIT");
+    return result.rows[0];
+  } catch (e) {
+    await pgClient.query("ROLLBACK");
+    throw e;
+  } finally {
+    pgClient.release();
   }
 };
 
