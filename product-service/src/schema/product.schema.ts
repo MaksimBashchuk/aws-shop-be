@@ -5,7 +5,10 @@ export const productSchema = zod.object({
   id: zod.string().uuid(),
   title: zod.string(),
   description: zod.string().optional(),
-  price: zod.number(),
+  price: zod
+    .number()
+    .or(zod.string().regex(/^\d*$/, "Invalid. Expect number or numeric string"))
+    .transform((val) => +val),
 });
 
 export const productWithStockSchema = productSchema.merge(

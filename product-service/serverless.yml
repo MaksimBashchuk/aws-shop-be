@@ -13,8 +13,8 @@ plugins:
 custom:
   PRODUCTS_TABLE_NAME: ${env:PRODUCTS_TABLE_NAME}
   STOCKS_TABLE_NAME: ${env:STOCKS_TABLE_NAME}
-  PGHOST: !GetAtt PostgreSqlRDSInstance.Endpoint.Address
-  PGPORT: !GetAtt PostgreSqlRDSInstance.Endpoint.Port
+  # PGHOST: !GetAtt PostgreSqlRDSInstance.Endpoint.Address
+  # PGPORT: !GetAtt PostgreSqlRDSInstance.Endpoint.Port
   webpack:
     webpackConfig: webpack.config.js
   documentation: ${file(serverless.doc.yml):documentation}
@@ -45,12 +45,15 @@ provider:
     PRODUCTS_TABLE_NAME: ${self:custom.PRODUCTS_TABLE_NAME}
     STOCKS_TABLE_NAME: ${self:custom.STOCKS_TABLE_NAME}
     USE_PG: ${env:USE_PG}
-    PGUSER: ${env:PGUSER}
-    PGPASSWORD: ${env:PGPASSWORD}
-    PGHOST: ${self:custom.PGHOST}
-    PGDATABASE: ${env:PGDATABASE}
-    PGPORT: ${self:custom.PGPORT}
-    CONNECTION_STRING: ${env:CONNECTION_STRING}
+    EMAIL: ${env:EMAIL}
+    SECOND_EMAIL: ${env:SECOND_EMAIL}
+    SNS_TOPIC: !Ref createProductTopic
+    # PGUSER: ${env:PGUSER}
+    # PGPASSWORD: ${env:PGPASSWORD}
+    # PGHOST: ${self:custom.PGHOST}
+    # PGDATABASE: ${env:PGDATABASE}
+    # PGPORT: ${self:custom.PGPORT}
+    # CONNECTION_STRING: ${env:CONNECTION_STRING}
 
   iam:
     role:
@@ -59,9 +62,25 @@ provider:
           Action:
             - dynamodb:*
           Resource: "*"
+        # - Effect: Allow
+        #   Action:
+        #     - rds:*
+        #   Resource: "*"
         - Effect: Allow
           Action:
-            - rds:*
+            - sqs:SendMessage
+            - sqs:GetQueueUrl
+          Resource:
+            Fn::Join:
+              - ":"
+              - - arn
+                - aws
+                - sqs
+                - Ref: AWS::Region
+                - Ref: AWS::AccountId
+                - catalogItemsQueue
+        - Effect: Allow
+          Action: sns:*
           Resource: "*"
 
 package:
@@ -69,18 +88,18 @@ package:
 
 resources:
   Resources:
-    PostgreSqlRDSInstance:
-      Type: AWS::RDS::DBInstance
-      DeletionPolicy: Retain
-      UpdateReplacePolicy: Retain
-      Properties:
-        MasterUsername: ${env:PGUSER}
-        MasterUserPassword: ${env:PGPASSWORD}
-        AllocatedStorage: "5"
-        DBName: ${env:PGDATABASE}
-        DBInstanceClass: db.t3.micro
-        Engine: postgres
-        PubliclyAccessible: true
+    # PostgreSqlRDSInstance:
+    #   Type: AWS::RDS::DBInstance
+    #   DeletionPolicy: Retain
+    #   UpdateReplacePolicy: Retain
+    #   Properties:
+    #     MasterUsername: ${env:PGUSER}
+    #     MasterUserPassword: ${env:PGPASSWORD}
+    #     AllocatedStorage: "5"
+    #     DBName: ${env:PGDATABASE}
+    #     DBInstanceClass: db.t3.micro
+    #     Engine: postgres
+    #     PubliclyAccessible: true
     products:
       Type: AWS::DynamoDB::Table
       Properties:
@@ -107,6 +126,29 @@ resources:
         KeySchema:
           - AttributeName: product_id
             KeyType: HASH
+    catalogItemsQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: catalogItemsQueue
+    createProductTopic:
+      Type: AWS::SNS::Topic
+      Properties:
+        TopicName: createProductTopic
+    createProductSubscription:
+      Type: AWS::SNS::Subscription
+      Properties:
+        Endpoint: ${env:EMAIL}
+        Protocol: email
+        TopicArn: !Ref createProductTopic
+    failedToCreateProductSubscription:
+      Type: AWS::SNS::Subscription
+      Properties:
+        Endpoint: ${env:SECOND_EMAIL}
+        Protocol: email
+        TopicArn: !Ref createProductTopic
+        FilterPolicyScope: MessageBody
+        FilterPolicy:
+          status: ["Failed to create product"]
 
 functions:
   getProductsList:
@@ -190,3 +232,17 @@ functions:
                   description: Internal server error
                 responseModels:
                   application/json: ErrorResponse
+  catalogBatchProcess:
+    handler: src/handlers/catalogBatchProcess.catalogBatchProcess
+    events:
+      - sqs:
+          arn:
+            Fn::Join:
+              - ":"
+              - - arn
+                - aws
+                - sqs
+                - Ref: AWS::Region
+                - Ref: AWS::AccountId
+                - catalogItemsQueue
+          batchSize: 5

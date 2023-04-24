@@ -4,6 +4,7 @@ import {
   createNewProduct,
   createNewProductPg,
 } from "../service/product.service";
+// import { createNewProduct } from "../service/mockService";
 import { CreateProductBody, createProductBodySchema } from "../schema";
 import { logger, sendResponse } from "../lib";
 
@@ -17,6 +18,7 @@ export const createProduct = async (
       const body = JSON.parse(event.body);
       const parsedBody = createProductBodySchema.parse(body);
 
+      // const result = createNewProduct(parsedBody as CreateProductBody);
       const result =
         process.env.USE_PG === "true"
           ? await createNewProductPg(parsedBody)
