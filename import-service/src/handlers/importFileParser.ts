@@ -28,7 +28,6 @@ export const importFileParser = async (event: S3Event) => {
         readStream
           .pipe(csv())
           .on("data", (data) => {
-            console.log("CHUNK:", data);
             queueClient.send(
               new SendMessageCommand({
                 QueueUrl: process.env.QUEUE_URL,
