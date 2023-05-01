@@ -4,10 +4,12 @@ import {
   DeleteObjectCommand,
   CopyObjectCommand,
 } from "@aws-sdk/client-s3";
+import { SQSClient, SendMessageCommand } from "@aws-sdk/client-sqs";
 import { S3Event } from "aws-lambda";
 import { Readable } from "stream";
 import csv from "csv-parser";
 
+const queueClient = new SQSClient({ region: process.env.REGION });
 const client = new S3Client({ region: process.env.REGION });
 
 export const importFileParser = async (event: S3Event) => {
@@ -21,15 +23,18 @@ export const importFileParser = async (event: S3Event) => {
 
     const readStream = response.Body as Readable;
 
-    const parsedData = [];
-
     const parseData = () =>
       new Promise((res) => {
         readStream
           .pipe(csv())
           .on("data", (data) => {
-            console.log("CHUNK:", data);
-            parsedData.push(data);
+            queueClient.send(
+              new SendMessageCommand({
+                QueueUrl: process.env.QUEUE_URL,
+                MessageBody: JSON.stringify(data),
+                DelaySeconds: 0,
+              })
+            );
           })
           .on("end", async () => {
             await moveFile(bucket, key);

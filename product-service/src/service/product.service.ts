@@ -4,6 +4,7 @@ import {
   TransactGetItemsCommand,
   TransactWriteItemsCommand,
   TransactWriteItemsCommandInput,
+  TransactWriteItem,
 } from "@aws-sdk/client-dynamodb";
 import { v4 } from "uuid";
 import { Pool } from "pg";
@@ -183,4 +184,47 @@ export const createNewProduct = async (
   await client.send(new TransactWriteItemsCommand(command));
   const createdProduct = await findOneProduct(id);
   return createdProduct;
+};
+
+export const createBatchProducts = async (products: CreateProductBody[]) => {
+  const transactItems: TransactWriteItem[] | undefined = [];
+
+  products.forEach((product) => {
+    const id = v4();
+
+    transactItems.push(
+      {
+        Put: {
+          TableName: process.env.PRODUCTS_TABLE_NAME,
+          Item: marshall(
+            {
+              id: id,
+              title: product.title,
+              price: product.price,
+              description: product.description,
+            },
+            { removeUndefinedValues: true }
+          ),
+        },
+      },
+      {
+        Put: {
+          TableName: process.env.STOCKS_TABLE_NAME,
+          Item: marshall(
+            {
+              product_id: id,
+              count: product.count,
+            },
+            { removeUndefinedValues: true }
+          ),
+        },
+      }
+    );
+  });
+
+  const command: TransactWriteItemsCommandInput = {
+    TransactItems: transactItems,
+  };
+
+  await client.send(new TransactWriteItemsCommand(command));
 };
