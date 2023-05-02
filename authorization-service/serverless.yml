@@ -1,0 +1,26 @@
+service: authorization-service
+
+frameworkVersion: "3"
+
+useDotenv: true
+provider:
+  name: aws
+  runtime: nodejs18.x
+  region: us-east-1
+  environment:
+    MaksimBashchuk: ${env:MaksimBashchuk}
+
+plugins:
+  - serverless-better-credentials
+  - serverless-webpack
+
+custom:
+  webpack:
+    webpackConfig: webpack.config.js
+
+package:
+  individually: true
+
+functions:
+  basicAuthorizer:
+    handler: src/handlers/basicAuthorizer.basicAuthorizer

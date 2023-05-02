@@ -3,6 +3,7 @@ export const sendResponse = (data?: any, statusCode: number = 200) => {
     statusCode,
     headers: {
       "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Credentials": true,
     },
   };
 
