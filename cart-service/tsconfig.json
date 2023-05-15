@@ -11,6 +11,7 @@
     "outDir": "./dist",
     "baseUrl": "./",
     "incremental": true,
-    "types": ["jest", "node", "express"]
+    "types": ["jest", "node", "express"],
+    "esModuleInterop": true
   }
 }

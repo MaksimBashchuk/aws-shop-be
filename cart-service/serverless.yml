@@ -1,0 +1,24 @@
+service: cart-service
+
+plugins:
+  # - serverless-better-credentials
+  - serverless-offline
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+
+custom:
+  serverless-offline:
+    httpPort: 4000
+
+functions:
+  main:
+    handler: dist/main.handler
+    events:
+      - http:
+          method: ANY
+          path: /
+      - http:
+          method: ANY
+          path: '{proxy+}'
