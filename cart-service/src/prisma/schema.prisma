@@ -23,32 +23,32 @@ model User {
 
 model Cart {
   id          String      @id @default(uuid()) @db.Uuid
-  user_id     String      @unique
-  created_at  DateTime    @default(now())
-  updated_at  DateTime    @updatedAt @default(now())
+  userId      String      @unique
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt @default(now())
   status      CartStatus
-  cart_items  CartItem[]
+  cartItems   CartItem[]
   order       Order?
-  user        User        @relation(fields: [user_id], references: [id])
+  user        User        @relation(fields: [userId], references: [id])
 }
 
 model CartItem {
   id          String      @id @default(uuid()) @db.Uuid
-  cart_id     String      @db.Uuid
-  product_id  String      @db.Uuid @unique
+  cartId     String      @db.Uuid
+  productId  String      @db.Uuid @unique
   count       Int
-  cart        Cart        @relation(fields: [cart_id], references: [id])
+  cart        Cart        @relation(fields: [cartId], references: [id], onDelete: Cascade)
 }
 
 model Order {
   id          String      @id @default(uuid()) @db.Uuid
-  user_id     String      @unique
-  cart_id     String      @unique @db.Uuid
+  userId     String      @unique
+  cartId     String      @unique @db.Uuid
   payment     Json
   delivery    Json
   comments    String
   status      CartStatus
   total       Int
-  cart        Cart        @relation(fields: [cart_id], references: [id])
-  user        User        @relation(fields: [user_id], references: [id])
+  cart        Cart        @relation(fields: [cartId], references: [id])
+  user        User        @relation(fields: [userId], references: [id])
 }
