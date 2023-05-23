@@ -1,0 +1,64 @@
+generator client {
+  provider = "prisma-client-js"
+  binaryTargets = ["native", "rhel-openssl-1.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum CartStatus {
+  OPEN
+  ORDERED
+}
+
+enum OrderStatus {
+  OPEN
+  APPROVED
+  CONFIRMED
+  SENT
+  COMPLETED
+  CANCELLED
+}
+
+model User {
+  id          String      @id @unique
+  name        String      @unique
+  email       String?     @unique
+  password    String
+  cart        Cart[]
+  order       Order[]
+}
+
+model Cart {
+  id          String      @id @default(uuid()) @db.Uuid
+  userId      String      @map("user_id")
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt @default(now())
+  status      CartStatus
+  cartItems   CartItem[]
+  order       Order?
+  user        User        @relation(fields: [userId], references: [id])
+}
+
+model CartItem {
+  id          String      @id @default(uuid()) @db.Uuid
+  cartId      String      @db.Uuid @map("cart_id")
+  productId   String      @db.Uuid @map("product_id")
+  count       Int
+  cart        Cart        @relation(fields: [cartId], references: [id], onDelete: Cascade)
+}
+
+model Order {
+  id          String      @id @default(uuid()) @db.Uuid
+  userId      String      @map("user_id")
+  cartId      String      @unique @db.Uuid @map("cart_id")
+  payment     Json
+  delivery    Json
+  comments    String
+  status      OrderStatus
+  total       Decimal
+  cart        Cart        @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  user        User        @relation(fields: [userId], references: [id])
+}
