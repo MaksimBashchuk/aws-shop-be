@@ -1,16 +1,14 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma, Cart } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { UpdateCartDto } from './dto/updateCart.dto';
-// import { CartItem } from './models';
 
 @Injectable()
 export class CartRepository {
   constructor(private prisma: PrismaService) {}
 
   findCartByUserId = async (userId: string) => {
-    const cart = await this.prisma.cart.findUnique({
-      where: { userId: userId },
+    const cart = await this.prisma.cart.findFirst({
+      where: { userId: userId, status: 'OPEN' },
       include: { cartItems: true },
     });
 
@@ -18,18 +16,6 @@ export class CartRepository {
   };
 
   createCart = async (userId: string) => {
-    // const input: Prisma.CartCreateArgs = ;
-
-    // if (cartItems) {
-    //   const cartItemsToCreate = cartItems.map(({ count, productId }) => ({
-    //     count,
-    //     productId: productId,
-    //   }));
-
-    //   input.data.cartItems = { createMany: { data: cartItemsToCreate } };
-    //   input.include = { cartItems: true };
-    // }
-
     const createdCart = await this.prisma.cart.create({
       data: {
         userId: userId,
@@ -41,23 +27,35 @@ export class CartRepository {
     return createdCart;
   };
 
-  updateCart = async (userId: string, { count, productId }: UpdateCartDto) => {
-    return await this.prisma.cart.update({
-      where: { userId: userId },
-      data: {
-        cartItems: {
-          upsert: {
-            where: { productId: productId },
-            create: { count, productId: productId },
-            update: { count, productId: productId },
-          },
-        },
-      },
-      include: { cartItems: true },
+  updateCart = async (cartId: string, { count, productId }: UpdateCartDto) => {
+    return await this.prisma.$transaction(async (client) => {
+      let cartItem = await client.cartItem.findFirst({
+        where: { cartId, productId },
+      });
+
+      if (!cartItem) {
+        cartItem = await this.prisma.cartItem.create({
+          data: { cart: { connect: { id: cartId } }, count, productId },
+        });
+      } else {
+        cartItem = await this.prisma.cartItem.update({
+          where: { id: cartItem.id },
+          data: { count },
+        });
+      }
+
+      return cartItem;
     });
   };
 
   deleteCart = async (userId: string) => {
-    return await this.prisma.cart.delete({ where: { userId: userId } });
+    return await this.prisma.$transaction(async (client) => {
+      const { id } = await client.cart.findFirst({
+        where: { user: { is: { id: userId } }, status: 'OPEN' },
+        select: { id: true },
+      });
+
+      return await this.prisma.cart.delete({ where: { id } });
+    });
   };
 }

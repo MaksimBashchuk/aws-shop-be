@@ -8,6 +8,7 @@
   "scripts": {
     "local": "npm run build && serverless offline --httpPort=4000",
     "migrate": "npx prisma migrate dev --name init",
+    "deploy": "SET AWS_SDK_LOAD_CONFIG=1 && serverless deploy",
     "generate": "npx prisma generate",
     "prebuild": "rimraf dist",
     "build": "nest build",
@@ -66,6 +67,7 @@
     "prisma": "^4.14.0",
     "rimraf": "^5.0.0",
     "serverless-offline": "^12.0.4",
+    "serverless-plugin-common-excludes": "^4.0.0",
     "supertest": "^6.3.3",
     "ts-jest": "29.1.0",
     "ts-loader": "^9.4.2",
